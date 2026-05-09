@@ -1,0 +1,7 @@
+2026-05-07 21:45:08,289 - ERROR - Error validando cliente: Email inválido
+2026-05-07 21:51:47,657 - ERROR - Error en reserva: AlquilerEquipo.calcular_costo() got an unexpected keyword argument 'horas'
+2026-05-07 21:55:06,145 - ERROR - Error en reserva: AlquilerEquipo.calcular_costo() got an unexpected keyword argument 'horas'
+2026-05-07 22:14:01,945 - ERROR - Error en reserva: AlquilerEquipo.calcular_costo() got an unexpected keyword argument 'horas'
+2026-05-07 22:33:57,257 - ERROR - Error validando cliente: Seleccione tipo documento
+2026-05-07 22:37:31,056 - ERROR - Error validando cliente: Correo inválido
+2026-05-07 22:39:39,633 - ERROR - Error en reserva: AlquilerEquipo.calcular_costo() got an unexpected keyword argument 'horas'
