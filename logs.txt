@@ -5,3 +5,12 @@
 2026-05-07 22:33:57,257 - ERROR - Error validando cliente: Seleccione tipo documento
 2026-05-07 22:37:31,056 - ERROR - Error validando cliente: Correo inválido
 2026-05-07 22:39:39,633 - ERROR - Error en reserva: AlquilerEquipo.calcular_costo() got an unexpected keyword argument 'horas'
+2026-05-11 20:54:26,997 - ERROR - Error validando cliente: Documento demasiado corto
+2026-05-11 20:54:42,764 - ERROR - Error validando cliente: Celular debe tener 10 dígitos
+2026-05-11 23:32:50,367 - ERROR - Error validando cliente: Correo inválido
+2026-05-11 23:32:52,623 - ERROR - Error validando cliente: Correo inválido
+2026-05-11 23:32:54,080 - ERROR - Error validando cliente: Correo inválido
+2026-05-12 20:00:13,493 - ERROR - Error validando cliente: Seleccione tipo documento
+2026-05-12 20:00:25,948 - ERROR - Error validando cliente: Documento demasiado corto
+2026-05-12 20:00:36,053 - ERROR - Error validando cliente: Nombre inválido
+2026-05-12 20:08:13,068 - ERROR - Error validando cliente: Seleccione tipo documento

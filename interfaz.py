@@ -1,15 +1,114 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from sistema import *
+from datetime import datetime
+import json
+import os
 
 # ======================================
 # SISTEMA PRINCIPAL
 # ======================================
 sistema = SistemaGestion()
+# ======================================
+# RELOJ EN TIEMPO REAL
+# ======================================
+def actualizar_hora():
+
+    hora_actual = datetime.now().strftime(
+        "%d/%m/%Y  %I:%M:%S %p"
+    )
+
+    label_hora.config(
+        text=hora_actual
+    )
+
+    ventana.after(
+        1000,
+        actualizar_hora
+    )
+
+
 
 # ======================================
-# FUNCIONES
+# MOSTRAR MODULOS
 # ======================================
+def mostrar_modulo(nombre):
+
+    modulo_clientes.pack_forget()
+
+    modulo_reservas.pack_forget()
+
+    modulo_reportes.pack_forget()
+
+    frame_eventos.pack_forget()
+
+    # =========================
+    # CLIENTES
+    # =========================
+    if nombre == "clientes":
+
+        modulo_clientes.pack(
+
+            side="left",
+
+            fill="y",
+
+            padx=15
+        )
+
+    # =========================
+    # RESERVAS
+    # =========================
+    elif nombre == "reservas":
+
+        modulo_reservas.pack(
+
+            side="left",
+
+            fill="y",
+
+            padx=15
+        )
+
+    # =========================
+    # REPORTES
+    # =========================
+    elif nombre == "reportes":
+
+        label_total_clientes.config(
+
+            text=f"Total Clientes: {len(sistema.clientes)}"
+        )
+
+        label_total_reservas.config(
+
+            text=f"Total Reservas: {len(tabla_reservas.get_children())}"
+        )
+
+        modulo_reportes.pack(
+
+            side="left",
+
+            fill="both",
+
+            expand=True,
+
+            padx=15
+        )
+
+    # =========================
+    # EVENTOS
+    # =========================
+    elif nombre == "eventos":
+
+        frame_eventos.pack(
+
+            fill="both",
+
+            expand=True,
+
+            pady=10
+        )
 
 def actualizar_tabla_clientes():
 
@@ -65,6 +164,8 @@ def registrar_cliente():
 
         actualizar_tabla_clientes()
 
+        guardar_clientes()
+
         mostrar_resultado(
             "Cliente registrado correctamente"
         )
@@ -73,7 +174,95 @@ def registrar_cliente():
 
     except Exception as e:
 
-        mostrar_resultado(str(e))
+         mostrar_error(e)
+
+# ======================================
+# GUARDAR CLIENTES
+# ======================================
+def guardar_clientes():
+
+    datos = []
+
+    for cliente in sistema.clientes:
+
+        datos.append({
+
+            "tipo_documento":
+            cliente.get_tipo_documento(),
+
+            "documento":
+            cliente.get_numero_documento(),
+
+            "nombre":
+            cliente.get_nombre(),
+
+            "correo":
+            cliente.get_correo(),
+
+            "celular":
+            cliente.get_celular()
+
+        })
+
+    with open(
+
+        "clientes.json",
+
+        "w",
+
+        encoding="utf-8"
+
+    ) as archivo:
+
+        json.dump(
+
+            datos,
+
+            archivo,
+
+            indent=4,
+
+            ensure_ascii=False
+        )
+
+# ======================================
+# CARGAR CLIENTES
+# ======================================
+def cargar_clientes():
+
+    if os.path.exists("clientes.json"):
+
+        with open(
+
+            "clientes.json",
+
+            "r",
+
+            encoding="utf-8"
+
+        ) as archivo:
+
+            datos = json.load(archivo)
+
+            for item in datos:
+
+                cliente = Cliente(
+
+                    item["tipo_documento"],
+
+                    item["documento"],
+
+                    item["nombre"],
+
+                    item["correo"],
+
+                    item["celular"]
+
+                )
+
+                sistema.agregar_cliente(cliente)
+
+        actualizar_tabla_clientes()
 
 # ======================================
 # SELECCIONAR CLIENTE
@@ -135,6 +324,9 @@ def editar_cliente():
 
         actualizar_tabla_clientes()
 
+        guardar_clientes()
+
+
         mostrar_resultado(
             "Cliente editado correctamente"
         )
@@ -143,7 +335,7 @@ def editar_cliente():
 
     except Exception as e:
 
-        mostrar_resultado(str(e))
+         mostrar_error(e)
 
 # ======================================
 # ELIMINAR CLIENTE
@@ -170,6 +362,8 @@ def eliminar_cliente():
 
             actualizar_tabla_clientes()
 
+            guardar_clientes()
+
             mostrar_resultado(
                 "Cliente eliminado"
             )
@@ -178,7 +372,7 @@ def eliminar_cliente():
 
     except Exception as e:
 
-        mostrar_resultado(str(e))
+         mostrar_error(e)
 
 # ======================================
 # CREAR RESERVA
@@ -193,10 +387,22 @@ def crear_reserva():
                 "No hay clientes registrados"
             )
 
-        seleccionado = tabla_clientes.selection()[0]
+        # =========================
+        # VALIDAR CLIENTE
+        # =========================
+
+        seleccionados = tabla_clientes.selection()
+
+        if not seleccionados:
+
+            raise ReservaError(
+                "No ha seleccionado un cliente"
+            )
+
+        seleccionado = seleccionados[0]
 
         cliente = sistema.clientes[
-            int(seleccionado)
+            int(seleccionados)
         ]
 
         tipo = combo_servicio.get()
@@ -284,6 +490,7 @@ def crear_reserva():
 
             )
         )
+        guardar_reservas()
 
         mostrar_resultado(
 
@@ -295,7 +502,108 @@ def crear_reserva():
 
     except Exception as e:
 
-        mostrar_resultado(str(e))
+         mostrar_error(e)
+
+    except ServicioError as e:
+
+        mostrar_error(
+            f"Error en servicio: {e}"
+        )
+
+    except Exception:
+
+        mostrar_error(
+            "Error inesperado al crear la reserva"
+        )
+
+# ======================================
+# GUARDAR RESERVAS
+# ======================================
+def guardar_reservas():
+
+    datos = []
+
+    for item in tabla_reservas.get_children():
+
+        valores = tabla_reservas.item(
+
+            item,
+
+            "values"
+        )
+
+        datos.append({
+
+            "cliente": valores[0],
+
+            "servicio": valores[1],
+
+            "estado": valores[2],
+
+            "costo": valores[3]
+
+        })
+
+    with open(
+
+        "reservas.json",
+
+        "w",
+
+        encoding="utf-8"
+
+    ) as archivo:
+
+        json.dump(
+
+            datos,
+
+            archivo,
+
+            indent=4,
+
+            ensure_ascii=False
+        )
+
+# ======================================
+# CARGAR RESERVAS
+# ======================================
+def cargar_reservas():
+
+    if os.path.exists("reservas.json"):
+
+        with open(
+
+            "reservas.json",
+
+            "r",
+
+            encoding="utf-8"
+
+        ) as archivo:
+
+            datos = json.load(archivo)
+
+            for reserva in datos:
+
+                tabla_reservas.insert(
+
+                    "",
+
+                    tk.END,
+
+                    values=(
+
+                        reserva["cliente"],
+
+                        reserva["servicio"],
+
+                        reserva["estado"],
+
+                        reserva["costo"]
+
+                    )
+                )
 
 # ======================================
 # CANCELAR RESERVA
@@ -304,13 +612,38 @@ def cancelar_reserva():
 
     try:
 
-        seleccionado = tabla_reservas.selection()[0]
+        # =========================
+        # VALIDAR SELECCION
+        # =========================
+        seleccionados = tabla_reservas.selection()
+
+        if not seleccionados:
+
+            raise ReservaError(
+                "No ha seleccionado una reserva"
+            )
+
+        seleccionado = seleccionados[0]
 
         valores = tabla_reservas.item(
+
             seleccionado,
+
             "values"
         )
 
+        # =========================
+        # VALIDAR SI YA ESTA CANCELADA
+        # =========================
+        if valores[2] == "Cancelada":
+
+            raise ReservaError(
+                "La reserva ya fue cancelada"
+            )
+
+        # =========================
+        # ACTUALIZAR ESTADO
+        # =========================
         tabla_reservas.item(
 
             seleccionado,
@@ -324,18 +657,24 @@ def cancelar_reserva():
                 "Cancelada",
 
                 valores[3]
-
             )
         )
 
+        guardar_reservas()
+
         mostrar_resultado(
-            "Reserva cancelada"
+            "Reserva cancelada correctamente"
         )
 
-    except Exception as e:
+    except ReservaError as e:
 
-        mostrar_resultado(str(e))
+        mostrar_error(e)
 
+    except Exception:
+
+        mostrar_error(
+            "Error inesperado al cancelar la reserva"
+        )
 
 # ======================================
 # FORMATO MONEDA COP
@@ -343,6 +682,49 @@ def cancelar_reserva():
 def formato_cop(valor):
 
     return f"$ {valor:,.2f} COP"
+# ======================================
+# MOSTRAR / OCULTAR EVENTOS
+# ======================================
+def toggle_eventos():
+
+    global eventos_visibles
+
+    if eventos_visibles:
+
+        frame_eventos.pack_forget()
+
+        eventos_visibles = False
+
+    else:
+
+        frame_eventos.pack(
+
+            fill="both",
+
+            expand=True,
+
+            pady=10
+        )
+
+        eventos_visibles = True
+
+# ======================================
+# MOSTRAR ERRORES
+# ======================================
+def mostrar_error(error):
+
+    messagebox.showerror(
+
+        "ERROR DEL SISTEMA",
+
+        str(error)
+
+    )
+
+    mostrar_resultado(
+
+        f"ERROR: {error}"
+    )
 # ======================================
 # MOSTRAR RESULTADOS
 # ======================================
@@ -408,6 +790,25 @@ titulo = tk.Label(
 )
 
 titulo.pack(pady=15)
+# ======================================
+# RELOJ SUPERIOR
+# ======================================
+label_hora = tk.Label(
+
+    ventana,
+
+    font=("Arial", 11, "bold"),
+
+    bg="#1E1E2E",
+
+    fg="#00FFAA"
+
+)
+
+label_hora.place(
+    x=20,
+    y=20
+)
 
 # ======================================
 # FRAME PRINCIPAL
@@ -427,38 +828,248 @@ frame.pack(
     expand=True
 
 )
-
 # ======================================
-# PANEL IZQUIERDO
+# CONTENEDOR CENTRAL
 # ======================================
-panel = tk.Frame(
+contenedor = tk.Frame(
 
     frame,
 
-    bg="#2A2A40",
-
-    padx=15,
-
-    pady=15
-
+    bg="#1E1E2E"
 )
 
-panel.pack(
+contenedor.pack(
 
     side="left",
 
-    fill="y",
+    fill="both",
 
-    padx=10
+    expand=True,
+
+    padx=10,
+
+    pady=10
+)
+
+# ======================================
+# SIDEBAR
+# ======================================
+sidebar = tk.Frame(
+
+    frame,
+
+    bg="#111827",
+
+    width=220
 
 )
+
+sidebar.pack(
+
+    side="left",
+
+    fill="y"
+)
+
+sidebar.pack_propagate(False)
+
+# ======================================
+# LOGO / TITULO
+# ======================================
+tk.Label(
+
+    sidebar,
+
+    text="SOFTWARE FJ",
+
+    font=("Arial", 18, "bold"),
+
+    bg="#111827",
+
+    fg="white"
+
+).pack(pady=20)
+
+# ======================================
+# BOTONES MENU
+# ======================================
+
+btn_clientes = tk.Button(
+
+    sidebar,
+
+    text="🧑 Clientes",
+
+    font=("Arial", 11),
+
+    bg="#1F2937",
+
+    fg="white",
+
+    relief="flat",
+
+    width=20,
+
+    pady=10,
+
+    command=lambda: mostrar_modulo("clientes")
+
+)
+
+btn_clientes.pack(pady=5)
+
+btn_reservas = tk.Button(
+
+    sidebar,
+
+    text="📅 Reservas",
+
+    font=("Arial", 11),
+
+    bg="#1F2937",
+
+    fg="white",
+
+    relief="flat",
+
+    width=20,
+
+    pady=10,
+
+    command=lambda: mostrar_modulo("reservas")
+
+)
+
+btn_reservas.pack(pady=5)
+
+btn_reportes = tk.Button(
+
+    sidebar,
+
+    text="📊 Reportes",
+
+    font=("Arial", 11),
+
+    bg="#1F2937",
+
+    fg="white",
+
+    relief="flat",
+
+    width=20,
+
+    pady=10,
+
+    command=lambda: mostrar_modulo("reportes")
+
+)
+
+btn_reportes.pack(pady=5)
+
+btn_eventos = tk.Button(
+
+    sidebar,
+
+    text="⚙ Eventos",
+
+    font=("Arial", 11),
+
+    bg="#1F2937",
+
+    fg="white",
+
+    relief="flat",
+
+    width=20,
+
+    pady=10,
+
+    command=lambda: mostrar_modulo("eventos")
+
+)
+
+btn_eventos.pack(pady=5)
+
+btn_salir = tk.Button(
+
+    sidebar,
+
+    text="🚪 Salir",
+
+    font=("Arial", 11),
+
+    bg="#DC2626",
+
+    fg="white",
+
+    relief="flat",
+
+    width=20,
+
+    pady=10,
+
+    command=ventana.destroy
+
+)
+
+btn_salir.pack(
+
+    side="bottom",
+
+    pady=20
+)
+
+
+# ======================================
+# CONTENEDOR MODULOS
+# ======================================
+# ======================================
+# MODULO CLIENTES
+# ======================================
+modulo_clientes = tk.Frame(
+
+    contenedor,
+
+    bg="#2C2F48",
+
+    padx=10,
+
+    pady=10
+)
+
+# ======================================
+# MODULO RESERVAS
+# ======================================
+modulo_reservas = tk.Frame(
+
+    contenedor,
+
+    bg="#2C2F48",
+
+    padx=10,
+
+    pady=10
+)
+
+modulo_clientes = tk.Frame(
+
+    contenedor,
+
+    bg="#2C2F48",
+
+    padx=10,
+
+    pady=10
+)
+
+
 
 # ======================================
 # FORMULARIO CLIENTES
 # ======================================
 tk.Label(
 
-    panel,
+    modulo_clientes,
 
     text="FORMULARIO CLIENTES",
 
@@ -475,7 +1086,7 @@ tk.Label(
 # ======================================
 tk.Label(
 
-    panel,
+    modulo_clientes,
 
     text="Tipo Documento",
 
@@ -487,7 +1098,7 @@ tk.Label(
 
 combo_tipo_documento = ttk.Combobox(
 
-    panel,
+    modulo_clientes,
 
     values=[
 
@@ -512,7 +1123,7 @@ combo_tipo_documento.pack(pady=5)
 # ======================================
 tk.Label(
 
-    panel,
+    modulo_clientes,
 
     text="Número Documento",
 
@@ -523,7 +1134,7 @@ tk.Label(
 ).pack()
 
 entry_documento = tk.Entry(
-    panel,
+    modulo_clientes,
     width=30
 )
 
@@ -534,7 +1145,7 @@ entry_documento.pack(pady=5)
 # ======================================
 tk.Label(
 
-    panel,
+    modulo_clientes,
 
     text="Nombre y Apellido",
 
@@ -545,7 +1156,7 @@ tk.Label(
 ).pack()
 
 entry_nombre = tk.Entry(
-    panel,
+    modulo_clientes,
     width=30
 )
 
@@ -556,7 +1167,7 @@ entry_nombre.pack(pady=5)
 # ======================================
 tk.Label(
 
-    panel,
+    modulo_clientes,
 
     text="Correo Electrónico",
 
@@ -567,7 +1178,7 @@ tk.Label(
 ).pack()
 
 entry_correo = tk.Entry(
-    panel,
+    modulo_clientes,
     width=30
 )
 
@@ -578,7 +1189,7 @@ entry_correo.pack(pady=5)
 # ======================================
 tk.Label(
 
-    panel,
+    modulo_clientes,
 
     text="Celular",
 
@@ -589,7 +1200,7 @@ tk.Label(
 ).pack()
 
 entry_celular = tk.Entry(
-    panel,
+    modulo_clientes,
     width=30
 )
 
@@ -601,7 +1212,7 @@ entry_celular.pack(pady=5)
 # ======================================
 tk.Button(
 
-    panel,
+    modulo_clientes,
 
     text="Registrar Cliente",
 
@@ -617,7 +1228,7 @@ tk.Button(
 
 tk.Button(
 
-    panel,
+    modulo_clientes,
 
     text="Editar Cliente",
 
@@ -631,7 +1242,7 @@ tk.Button(
 
 tk.Button(
 
-    panel,
+    modulo_clientes,
 
     text="Eliminar Cliente",
 
@@ -645,78 +1256,14 @@ tk.Button(
 
 ).pack(pady=5)
 
-# ======================================
-# SERVICIOS
-# ======================================
-tk.Label(
-
-    panel,
-
-    text="Tipo Servicio",
-
-    bg="#2A2A40",
-
-    fg="white"
-
-).pack(pady=10)
-
-combo_servicio = ttk.Combobox(
-
-    panel,
-
-    values=[
-
-        "Sala",
-
-        "Equipo",
-
-        "Asesoría"
-
-    ],
-
-    width=27
-
-)
-
-combo_servicio.pack()
 
 # ======================================
-# BOTONES RESERVA
+# CONTROL EVENTOS
 # ======================================
-tk.Button(
-
-    panel,
-
-    text="Crear Reserva",
-
-    width=25,
-
-    bg="#2196F3",
-
-    fg="white",
-
-    command=crear_reserva
-
-).pack(pady=10)
-
-tk.Button(
-
-    panel,
-
-    text="Cancelar Reserva",
-
-    width=25,
-
-    bg="#9C27B0",
-
-    fg="white",
-
-    command=cancelar_reserva
-
-).pack(pady=5)
+eventos_visibles = False
 
 # ======================================
-# PANEL DERECHO
+# modulo_clientes DERECHO
 # ======================================
 derecha = tk.Frame(
 
@@ -815,6 +1362,174 @@ tabla_clientes.bind(
     "<<TreeviewSelect>>",
     seleccionar_cliente
 )
+# ======================================
+# MODULO RESERVAS
+# ======================================
+# ======================================
+# MODULO REPORTES
+# ======================================
+modulo_reportes = tk.Frame(
+
+    contenedor,
+
+    bg="#2C2F48",
+
+    padx=10,
+
+    pady=10
+)
+# ======================================
+# TITULO REPORTES
+# ======================================
+tk.Label(
+
+    modulo_reportes,
+
+    text="REPORTES DEL SISTEMA",
+
+    font=("Arial", 16, "bold"),
+
+    bg="#2C2F48",
+
+    fg="white"
+
+).pack(pady=20)
+
+# ======================================
+# REPORTE CLIENTES
+# ======================================
+label_total_clientes = tk.Label(
+
+    modulo_reportes,
+
+    text="Total Clientes: 0",
+
+    font=("Arial", 12),
+
+    bg="#2C2F48",
+
+    fg="white"
+
+)
+
+label_total_clientes.pack(pady=10)
+
+# ======================================
+# REPORTE RESERVAS
+# ======================================
+label_total_reservas = tk.Label(
+
+    modulo_reportes,
+
+    text="Total Reservas: 0",
+
+    font=("Arial", 12),
+
+    bg="#2C2F48",
+
+    fg="white"
+
+)
+
+label_total_reservas.pack(pady=10)
+
+modulo_reservas = tk.Frame(
+
+    contenedor,
+
+    bg="#2C2F48",
+
+    padx=10,
+
+    pady=10
+)
+modulo_reservas.pack_forget()
+
+# ======================================
+# SERVICIOS
+# ======================================
+tk.Label(
+
+    modulo_reservas,
+
+    text="Tipo Servicio",
+
+    bg="#2A2A40",
+
+    fg="white"
+
+).pack(pady=10)
+
+combo_servicio = ttk.Combobox(
+
+    modulo_reservas,
+
+    values=[
+
+        "Sala",
+
+        "Equipo",
+
+        "Asesoría"
+
+    ],
+
+    width=27
+
+)
+
+combo_servicio.pack()
+
+# ======================================
+# BOTONES RESERVA
+# ======================================
+tk.Button(
+
+    modulo_reservas,
+
+    text="Crear Reserva",
+
+    width=25,
+
+    bg="#2196F3",
+
+    fg="white",
+
+    command=crear_reserva
+
+).pack(pady=10)
+
+tk.Button(
+
+    modulo_reservas,
+
+    text="Cancelar Reserva",
+
+    width=25,
+
+    bg="#9C27B0",
+
+    fg="white",
+
+    command=cancelar_reserva
+
+).pack(pady=5)
+
+tk.Button(
+
+    modulo_reservas,
+
+    text="Ver Eventos",
+
+    width=25,
+
+    bg="#607D8B",
+
+    fg="white",
+
+    command=lambda: mostrar_modulo("eventos")
+
+).pack(pady=10)
 
 # ======================================
 # TABLA RESERVAS
@@ -883,6 +1598,12 @@ tabla_reservas.pack(
 # ======================================
 # EVENTOS DEL SISTEMA
 # ======================================
+frame_eventos = tk.Frame(
+
+    derecha,
+
+    bg="#1E1E2E"
+)
 tk.Label(
 
     derecha,
@@ -895,7 +1616,7 @@ tk.Label(
 
     fg="white"
 
-).pack()
+).pack(in_=frame_eventos)
 
 area_resultados = tk.Text(
 
@@ -911,13 +1632,22 @@ area_resultados = tk.Text(
 
 area_resultados.pack(
 
+    in_=frame_eventos,
+
     fill="both",
 
     expand=True
-
 )
 
 # ======================================
 # EJECUTAR SISTEMA
 # ======================================
+actualizar_hora()
+
+cargar_clientes()
+
+cargar_reservas()
+
+mostrar_modulo("clientes")
+
 ventana.mainloop()

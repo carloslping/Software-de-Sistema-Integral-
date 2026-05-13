@@ -48,7 +48,7 @@ class Cliente(Entidad):
         nombre_apellido,
         correo,
         celular,
-        celular_alternativo
+    
     ):
 
         self.__tipo_documento = tipo_documento
@@ -56,7 +56,7 @@ class Cliente(Entidad):
         self.__nombre_apellido = nombre_apellido
         self.__correo = correo
         self.__celular = celular
-        self.__celular_alternativo = celular_alternativo
+       
 
         self.validar()
 
@@ -102,12 +102,7 @@ class Cliente(Entidad):
                     "Celular debe tener 10 dígitos"
                 )
 
-            if self.__celular_alternativo != "":
 
-                if not self.__celular_alternativo.isdigit():
-                    raise ClienteError(
-                        "Celular alternativo inválido"
-                    )
 
         except Exception as e:
 
@@ -145,8 +140,7 @@ class Cliente(Entidad):
     def get_celular(self):
         return self.__celular
 
-    def get_celular_alternativo(self):
-        return self.__celular_alternativo
+
     
 # =========================
 # SERVICIO ABSTRACTO
@@ -263,7 +257,7 @@ class Reserva:
 
             print(
             "Proceso de reserva finalizado"
-            )
+        )
 
 # =========================
 # SISTEMA PRINCIPAL
